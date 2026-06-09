@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %} — Résultats{% endblock %}
+
+{% block content %}
+
+{% set sev_colors = {
+  'CRITICAL': '#da3633',
+  'HIGH':     '#d29922',
+  'MEDIUM':   '#1f6feb',
+  'LOW':      '#238636',
+  'INFO':     '#6e7681'
+} %}
+
+<!-- En-tête -->
+<div class="d-flex align-items-center mb-4 gap-2">
+  <a href="/" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0 fw-bold" style="color:#58a6ff;">
+    Résultats — <code>{{ target }}</code>
+  </h4>
+</div>
+
+<!-- Cartes de résumé -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-white">{{ files_scanned }}</div>
+      <div class="text-muted small">fichier scanné</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold {% if total_detections > 0 %}text-danger{% else %}text-success{% endif %}">
+        {{ total_detections }}
+      </div>
+      <div class="text-muted small">détection(s)</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-white">{{ "%.3f" | format(scan_time) }}s</div>
+      <div class="text-muted small">durée du scan</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card text-center p-3">
+      {% if all_results %}
+        <div class="fs-2 fw-bold text-danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
+        <div class="text-muted small">suspect</div>
+      {% else %}
+        <div class="fs-2 fw-bold text-success"><i class="bi bi-check-circle-fill"></i></div>
+        <div class="text-muted small">propre</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if not all_results %}
+<!-- Fichier propre -->
+<div class="card p-5 text-center">
+  <i class="bi bi-shield-check text-success" style="font-size: 4rem;"></i>
+  <h4 class="mt-3 text-success">Aucune menace détectée</h4>
+  <p class="text-muted">
+    Le fichier <code>{{ target }}</code> ne correspond à aucune règle YARA.
+  </p>
+  <a href="/" class="btn btn-outline-secondary mt-2 mx-auto" style="width:fit-content;">
+    <i class="bi bi-search me-1"></i>Analyser un autre fichier
+  </a>
+</div>
+
+{% else %}
+
+<!-- Répartition par sévérité -->
+{% if severity_counts %}
+<div class="card p-3 mb-4">
+  <p class="text-muted small mb-2">Répartition par sévérité</p>
+  <div class="d-flex flex-wrap gap-2">
+    {% for sev in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'] %}
+      {% if severity_counts.get(sev, 0) > 0 %}
+      <span class="badge fs-6 px-3 py-2 sev-{{ sev }}">
+        {{ sev }} &nbsp; {{ severity_counts[sev] }}
+      </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Détails par fichier -->
+{% for filepath, matches in all_results.items() %}
+<div class="card mb-3">
+  <div class="card-header d-flex align-items-center gap-2" style="background:#1c2128;">
+    <i class="bi bi-file-earmark-code" style="color:#58a6ff;"></i>
+    <code style="color:#79c0ff;">{{ filepath }}</code>
+    <span class="ms-auto badge bg-danger">{{ matches | length }} alerte(s)</span>
+  </div>
+
+  {% for match in matches %}
+  <div class="p-3 {% if not loop.last %}border-bottom{% endif %}"
+       style="border-color:#30363d !important;">
+
+    <!-- Règle + sévérité -->
+    <div class="d-flex align-items-start gap-2 mb-2">
+      <span class="badge sev-{{ match.severity }} mt-1">{{ match.severity }}</span>
+      <div>
+        <strong style="color:#e6edf3;">{{ match.rule_name }}</strong>
+        <span class="ms-2 text-muted small">{{ match.rule_file }}</span>
+      </div>
+      <span class="ms-auto badge"
+            style="background:#1c2128; color:#8b949e; font-size:0.7rem;">
+        {{ match.category }}
+      </span>
+    </div>
+
+    <!-- Description -->
+    <p class="text-muted small mb-2 ps-1">{{ match.description }}</p>
+
+    <!-- Strings matchées -->
+    {% if match.matched_strings %}
+    <div class="ps-1">
+      {% for s in match.matched_strings[:3] %}
+      <div class="match-offset">
+        <span style="color:#6e7681;">→ offset</span>
+        <code style="color:#58a6ff; font-size:0.8rem;">{{ s.offset }}</code>
+        <span style="color:#8b949e;">{{ s.identifier }}</span>
+        <span style="color:#6e7681;">=</span>
+        <code style="color:#a5d6ff; font-size:0.8rem;">"{{ s.data[:70] }}"</code>
+      </div>
+      {% endfor %}
+      {% if match.matched_strings | length > 3 %}
+      <div class="text-muted small mt-1">
+        + {{ match.matched_strings | length - 3 }} occurrence(s) supplémentaire(s)
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+  {% endfor %}
+</div>
+{% endfor %}
+
+<!-- Boutons de téléchargement -->
+<div class="d-flex gap-2 mt-4 flex-wrap">
+  <a href="/report/json" class="btn btn-outline-info">
+    <i class="bi bi-filetype-json me-1"></i>Rapport JSON
+  </a>
+  <a href="/report/csv" class="btn btn-outline-success">
+    <i class="bi bi-filetype-csv me-1"></i>Rapport CSV
+  </a>
+  <a href="/" class="btn btn-outline-secondary ms-auto">
+    <i class="bi bi-search me-1"></i>Nouveau scan
+  </a>
+</div>
+
+{% endif %}
+{% endblock %}

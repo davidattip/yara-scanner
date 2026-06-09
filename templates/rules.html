@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %} — Règles YARA{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center mb-4 gap-2">
+  <a href="/" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h4 class="mb-0 fw-bold" style="color:#58a6ff;">
+    <i class="bi bi-list-check me-2"></i>Règles YARA chargées
+  </h4>
+  <span class="ms-auto badge" style="background:#1f6feb; font-size:0.9rem;">
+    {{ total_rules }} règles au total
+  </span>
+</div>
+
+<div class="row g-3">
+  {% for item in rules_data %}
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex align-items-center gap-2" style="background:#1c2128;">
+        <i class="bi bi-file-earmark-text" style="color:#58a6ff;"></i>
+        <code style="color:#79c0ff;">{{ item.file }}</code>
+        <span class="ms-auto badge bg-secondary">{{ item.rules | length }}</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for rule in item.rules %}
+        <li class="list-group-item d-flex align-items-center"
+            style="background:#161b22; border-color:#30363d; color:#c9d1d9;">
+          <i class="bi bi-chevron-right me-2" style="color:#3fb950; font-size:0.8rem;"></i>
+          {{ rule }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-4">
+  <a href="/" class="btn btn-primary">
+    <i class="bi bi-search me-1"></i>Lancer un scan
+  </a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %} — Analyser{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <!-- Titre -->
+    <div class="text-center mb-5 mt-2">
+      <h1 class="fw-bold" style="color:#58a6ff; letter-spacing:1px;">
+        YARA STATIC CODE ANALYZER
+      </h1>
+      <p class="text-muted">Analyse statique de scripts par moteur YARA — M1 Cybersécurité</p>
+    </div>
+
+    <!-- Cartes de stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-4">
+        <div class="card text-center p-3">
+          <div class="fs-2 fw-bold" style="color:#58a6ff;">{{ rule_count }}</div>
+          <div class="text-muted small">règles YARA</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card text-center p-3">
+          <div class="fs-2 fw-bold" style="color:#58a6ff;">{{ rule_files | length }}</div>
+          <div class="text-muted small">fichiers .yar</div>
+        </div>
+      </div>
+      <div class="col-4">
+        <div class="card text-center p-3">
+          <div class="fs-2 fw-bold" style="color:#3fb950;">{{ supported_ext | length }}</div>
+          <div class="text-muted small">extensions</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire d'upload -->
+    <div class="card p-4 mb-3">
+      <h5 class="mb-3" style="color:#e6edf3;">
+        <i class="bi bi-shield-check me-2" style="color:#58a6ff;"></i>Scanner un fichier
+      </h5>
+      <form action="/scan" method="post" enctype="multipart/form-data">
+        <div class="drop-zone mb-3" id="dropZone"
+             onclick="document.getElementById('fileInput').click()">
+          <i class="bi bi-file-earmark-code fs-1" style="color:#30363d;"></i>
+          <p class="mt-2 mb-1" style="color:#8b949e;">
+            Cliquez ou déposez un fichier ici
+          </p>
+          <p class="small text-muted mb-0" id="fileLabel">
+            {{ supported_ext | join('&nbsp;&nbsp;') }}
+          </p>
+          <input type="file" id="fileInput" name="file" class="d-none"
+                 onchange="handleFile(this)" />
+        </div>
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary btn-lg fw-bold">
+            <i class="bi bi-search me-1"></i> Analyser
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <p class="text-center small">
+      <a href="/rules" style="color:#58a6ff; text-decoration:none;">
+        <i class="bi bi-list-check me-1"></i>Voir les {{ rule_files | length }} fichiers de règles chargés
+      </a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function handleFile(input) {
+  if (input.files.length) {
+    const name = input.files[0].name;
+    document.getElementById('fileLabel').innerHTML =
+      '<i class="bi bi-file-earmark-check"></i> ' + name;
+    document.getElementById('dropZone').style.borderColor = '#58a6ff';
+  }
+}
+
+const zone = document.getElementById('dropZone');
+zone.addEventListener('dragover', e => {
+  e.preventDefault();
+  zone.classList.add('dragover');
+});
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const input = document.getElementById('fileInput');
+  input.files = e.dataTransfer.files;
+  handleFile(input);
+});
+</script>
+{% endblock %}

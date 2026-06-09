@@ -7,6 +7,10 @@ __pycache__/
 reports/*
 !reports/.gitkeep
 
+# Fichiers uploadés via l'interface web
+uploads/*
+!uploads/.gitkeep
+
 # Environnements virtuels
 .venv/
 venv/
