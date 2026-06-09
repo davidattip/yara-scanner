@@ -48,7 +48,7 @@
             Cliquez ou déposez un fichier ici
           </p>
           <p class="small text-muted mb-0" id="fileLabel">
-            {{ supported_ext | join('&nbsp;&nbsp;') }}
+            {{ supported_ext | join('  ') }}
           </p>
           <input type="file" id="fileInput" name="file" class="d-none"
                  onchange="handleFile(this)" />
