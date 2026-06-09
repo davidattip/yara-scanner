@@ -18,6 +18,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 try:
     import yara
@@ -65,14 +66,14 @@ SEVERITY_COLORS = {
 class YaraScanner:
     """Moteur d'analyse statique basé sur YARA."""
 
-    def __init__(self, rules_dir=RULES_DIR):
+    def __init__(self, rules_dir: str = RULES_DIR) -> None:
         self.rules_dir = rules_dir
-        self.compiled_rules = []
-        self.rule_files = []
-        self.total_rules_count = 0
+        self.compiled_rules: list[tuple[str, object]] = []
+        self.rule_files: list[str] = []
+        self.total_rules_count: int = 0
         self._load_rules()
 
-    def _load_rules(self):
+    def _load_rules(self) -> None:
         """Charge et compile toutes les règles YARA du dossier rules/."""
         if not os.path.isdir(self.rules_dir):
             print(f"{Fore.RED}[ERREUR] Dossier de règles introuvable : {self.rules_dir}")
@@ -104,7 +105,7 @@ class YaraScanner:
             except Exception as e:
                 print(f"{Fore.YELLOW}[ATTENTION] Impossible de charger {yar_file.name}: {e}")
 
-    def scan_file(self, filepath):
+    def scan_file(self, filepath: str | Path) -> list[dict]:
         """Scanne un fichier avec toutes les règles YARA chargées."""
         results = []
         filepath = str(filepath)
@@ -152,7 +153,7 @@ class YaraScanner:
         results.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 99))
         return results
 
-    def scan_directory(self, target_dir):
+    def scan_directory(self, target_dir: str) -> tuple[dict[str, list[dict]], int, int]:
         """Scanne récursivement un dossier et retourne tous les résultats."""
         all_results = {}
         files_scanned = 0
@@ -176,7 +177,7 @@ class YaraScanner:
 
         return all_results, files_scanned, files_skipped
 
-    def list_rules(self):
+    def list_rules(self) -> None:
         """Affiche toutes les règles chargées."""
         print(f"\n{Fore.CYAN}{'═' * 60}")
         print(f"  RÈGLES YARA CHARGÉES")
@@ -200,7 +201,7 @@ class YaraScanner:
 #  AFFICHAGE DES RÉSULTATS
 # ============================================================
 
-def print_banner():
+def print_banner() -> None:
     """Affiche la bannière du programme."""
     banner = f"""
 {Fore.CYAN}╔══════════════════════════════════════════════════════════════╗
@@ -220,7 +221,12 @@ def print_banner():
     print(banner)
 
 
-def print_results(all_results, files_scanned, files_skipped, scan_time):
+def print_results(
+    all_results: dict[str, list[dict]],
+    files_scanned: int,
+    files_skipped: int,
+    scan_time: float,
+) -> None:
     """Affiche les résultats du scan dans le terminal."""
     total_detections = sum(len(matches) for matches in all_results.values())
     files_infected = len(all_results)
@@ -281,7 +287,11 @@ def print_results(all_results, files_scanned, files_skipped, scan_time):
 #  GÉNÉRATION DE RAPPORTS
 # ============================================================
 
-def generate_json_report(all_results, files_scanned, output_dir=REPORTS_DIR):
+def generate_json_report(
+    all_results: dict[str, list[dict]],
+    files_scanned: int,
+    output_dir: str = REPORTS_DIR,
+) -> str:
     """Génère un rapport au format JSON."""
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -322,7 +332,11 @@ def generate_json_report(all_results, files_scanned, output_dir=REPORTS_DIR):
     return output_path
 
 
-def generate_csv_report(all_results, files_scanned, output_dir=REPORTS_DIR):
+def generate_csv_report(
+    all_results: dict[str, list[dict]],
+    files_scanned: int,
+    output_dir: str = REPORTS_DIR,
+) -> str:
     """Génère un rapport au format CSV."""
     os.makedirs(output_dir, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -351,7 +365,7 @@ def generate_csv_report(all_results, files_scanned, output_dir=REPORTS_DIR):
 #  POINT D'ENTRÉE
 # ============================================================
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="YARA Static Code Analyzer — Outil d'analyse statique de scripts",
         formatter_class=argparse.RawDescriptionHelpFormatter,
