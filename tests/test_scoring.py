@@ -14,6 +14,7 @@ from core.scoring import (  # noqa: E402
     SUSPECT,
     assess_file,
     compute_score,
+    normalize_score,
     verdict_from_score,
 )
 
@@ -54,12 +55,36 @@ class TestVerdictThresholds:
         assert verdict_from_score(50) == MALICIOUS
 
 
+class TestNormalizeScore:
+
+    def test_zero_is_zero(self) -> None:
+        assert normalize_score(0) == 0
+
+    def test_ceiling_reaches_100(self) -> None:
+        # RISK_CEILING = 20 → deux CRITICAL saturent la barre.
+        assert normalize_score(20) == 100
+
+    def test_beyond_ceiling_is_capped(self) -> None:
+        assert normalize_score(50) == 100
+
+    def test_single_critical_is_half(self) -> None:
+        assert normalize_score(10) == 50
+
+
 class TestAssessFile:
 
-    def test_returns_score_and_verdict(self) -> None:
-        assert assess_file([_det("CRITICAL")]) == (10, MALICIOUS)
+    def test_returns_score_risk_and_verdict(self) -> None:
+        # Deux CRITICAL : score brut 20, risque 100/100, verdict MALVEILLANT.
+        assert assess_file([_det("CRITICAL"), _det("CRITICAL")]) == (20, 100, MALICIOUS)
+
+    def test_fields_are_named(self) -> None:
+        a = assess_file([_det("CRITICAL")])
+        assert a.score == 10
+        assert a.risk == 50
+        assert a.verdict == MALICIOUS
 
     def test_medium_only_is_review_not_clean(self) -> None:
-        score, verdict = assess_file([_det("MEDIUM")])
-        assert score == 2
-        assert verdict == REVIEW
+        a = assess_file([_det("MEDIUM")])
+        assert a.score == 2
+        assert a.risk == 10
+        assert a.verdict == REVIEW

@@ -77,9 +77,9 @@ def scan():
         for m in file_matches:
             severity_counts[m["severity"]] += 1
 
-    # Score de risque + verdict par fichier : {filepath: {"score", "verdict"}}
+    # Évaluation par fichier : {filepath: {"score", "risk", "verdict"}}
     assessments = {
-        filepath: dict(zip(("score", "verdict"), assess_file(matches)))
+        filepath: assess_file(matches)._asdict()
         for filepath, matches in all_results.items()
     }
 

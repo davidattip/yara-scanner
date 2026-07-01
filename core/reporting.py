@@ -18,11 +18,12 @@ from core.scoring import assess_file
 
 
 def _file_entry(matches: list[dict]) -> dict:
-    """Construit l'entrée d'un fichier (score, verdict, détections) pour le JSON."""
-    score, verdict = assess_file(matches)
+    """Construit l'entrée d'un fichier (score, risque, verdict, détections)."""
+    assessment = assess_file(matches)
     return {
-        "score": score,
-        "verdict": verdict,
+        "score": assessment.score,
+        "risk": assessment.risk,
+        "verdict": assessment.verdict,
         "matches": [
             {
                 "rule": m["rule_name"],
@@ -86,18 +87,19 @@ def generate_csv_report(
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(
-            ["Fichier", "Score", "Verdict", "Règle", "Sévérité",
+            ["Fichier", "Score", "Risque/100", "Verdict", "Règle", "Sévérité",
              "Catégorie", "Description", "Strings Matchées"]
         )
         for filepath, matches in all_results.items():
-            score, verdict = assess_file(matches)
+            assessment = assess_file(matches)
             for m in matches:
                 strings_str = " | ".join(
                     f"{s['identifier']}={s['data'][:40]}"
                     for s in m["matched_strings"][:5]
                 )
                 writer.writerow([
-                    filepath, score, verdict, m["rule_name"], m["severity"],
+                    filepath, assessment.score, assessment.risk,
+                    assessment.verdict, m["rule_name"], m["severity"],
                     m["category"], m["description"], strings_str,
                 ])
 

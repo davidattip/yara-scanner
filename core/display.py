@@ -132,12 +132,13 @@ def print_results(
     for filepath, matches in sorted(all_results.items()):
         max_severity = matches[0]["severity"] if matches else "INFO"
         color = SEVERITY_COLORS.get(max_severity, "")
-        score, verdict = assess_file(matches)
-        verdict_color = VERDICT_COLORS.get(verdict, "")
+        assessment = assess_file(matches)
+        verdict_color = VERDICT_COLORS.get(assessment.verdict, "")
         print(f"\n  {color}📄 {filepath}{Style.RESET_ALL}")
         print(
-            f"     {verdict_color}⚖  Verdict : {verdict} "
-            f"(score {score}){Style.RESET_ALL}"
+            f"     {verdict_color}⚖  Verdict : {assessment.verdict} "
+            f"(score {assessment.score} · risque {assessment.risk}/100)"
+            f"{Style.RESET_ALL}"
         )
 
         for match in matches:
