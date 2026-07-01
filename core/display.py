@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import sys
 
+from core.scoring import CLEAN, MALICIOUS, REVIEW, SUSPECT, assess_file
+
 # --- Encodage de sortie ----------------------------------------------------
 # La bannière et les résumés utilisent des emojis / caractères Unicode.
 # Sur une console Windows par défaut (cp1252), ces caractères provoquent
@@ -44,6 +46,13 @@ SEVERITY_COLORS = {
     "MEDIUM": Fore.YELLOW,
     "LOW": Fore.CYAN,
     "INFO": Fore.WHITE,
+}
+
+VERDICT_COLORS = {
+    MALICIOUS: Fore.RED + Style.BRIGHT,
+    SUSPECT: Fore.YELLOW,
+    REVIEW: Fore.CYAN,
+    CLEAN: Fore.GREEN,
 }
 
 
@@ -123,7 +132,13 @@ def print_results(
     for filepath, matches in sorted(all_results.items()):
         max_severity = matches[0]["severity"] if matches else "INFO"
         color = SEVERITY_COLORS.get(max_severity, "")
+        score, verdict = assess_file(matches)
+        verdict_color = VERDICT_COLORS.get(verdict, "")
         print(f"\n  {color}📄 {filepath}{Style.RESET_ALL}")
+        print(
+            f"     {verdict_color}⚖  Verdict : {verdict} "
+            f"(score {score}){Style.RESET_ALL}"
+        )
 
         for match in matches:
             sev_color = SEVERITY_COLORS.get(match["severity"], "")

@@ -11,6 +11,13 @@
   'INFO':     '#6e7681'
 } %}
 
+{% set verdict_colors = {
+  'MALVEILLANT': '#da3633',
+  'SUSPECT':     '#d29922',
+  'À VÉRIFIER':  '#1f6feb',
+  'PROPRE':      '#238636'
+} %}
+
 <!-- En-tête -->
 <div class="d-flex align-items-center mb-4 gap-2">
   <a href="/" class="btn btn-sm btn-outline-secondary">
@@ -93,7 +100,11 @@
   <div class="card-header d-flex align-items-center gap-2" style="background:#1c2128;">
     <i class="bi bi-file-earmark-code" style="color:#58a6ff;"></i>
     <code style="color:#79c0ff;">{{ filepath }}</code>
-    <span class="ms-auto badge bg-danger">{{ matches | length }} alerte(s)</span>
+    {% set assessment = assessments[filepath] %}
+    <span class="ms-auto badge" style="color:#fff; background:{{ verdict_colors.get(assessment.verdict, '#6e7681') }};">
+      {{ assessment.verdict }} · score {{ assessment.score }}
+    </span>
+    <span class="badge bg-danger">{{ matches | length }} alerte(s)</span>
   </div>
 
   {% for match in matches %}

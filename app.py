@@ -12,6 +12,7 @@ from pathlib import Path
 from flask import Flask, flash, redirect, render_template, request, send_file, url_for
 from werkzeug.utils import secure_filename
 
+from core.scoring import assess_file
 from scanner import (
     REPORTS_DIR,
     SUPPORTED_EXTENSIONS,
@@ -76,9 +77,16 @@ def scan():
         for m in file_matches:
             severity_counts[m["severity"]] += 1
 
+    # Score de risque + verdict par fichier : {filepath: {"score", "verdict"}}
+    assessments = {
+        filepath: dict(zip(("score", "verdict"), assess_file(matches)))
+        for filepath, matches in all_results.items()
+    }
+
     return render_template(
         "results.html",
         all_results=all_results,
+        assessments=assessments,
         files_scanned=1,
         scan_time=scan_time,
         target=filename,

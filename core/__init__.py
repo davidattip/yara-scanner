@@ -20,11 +20,15 @@ from core.config import (
 )
 from core.engine import YaraScanner
 from core.reporting import generate_csv_report, generate_json_report
+from core.scoring import assess_file, compute_score, verdict_from_score
 
 __all__ = [
     "YaraScanner",
     "generate_json_report",
     "generate_csv_report",
+    "assess_file",
+    "compute_score",
+    "verdict_from_score",
     "RULES_DIR",
     "REPORTS_DIR",
     "SUPPORTED_EXTENSIONS",
