@@ -109,18 +109,12 @@ def download_report(fmt: str):
 
 @app.route("/rules")
 def list_rules() -> str:
-    rules_dir = Path(__file__).parent / "rules"
-    rules_data = []
-    for yar_file in sorted(rules_dir.glob("*.yar")):
-        rule_names = []
-        with open(yar_file, encoding="utf-8") as f:
-            for line in f:
-                stripped = line.strip()
-                if stripped.startswith("rule ") and not stripped.startswith("rule_"):
-                    rule_names.append(
-                        stripped.replace("rule ", "").replace("{", "").strip()
-                    )
-        rules_data.append({"file": yar_file.name, "rules": rule_names})
+    # Les noms de règles proviennent directement du moteur (API YARA),
+    # plus fiable qu'un parsing texte des fichiers .yar.
+    rules_data = [
+        {"file": filename, "rules": scanner.rules_by_file[filename]}
+        for filename in sorted(scanner.rules_by_file)
+    ]
     return render_template(
         "rules.html",
         rules_data=rules_data,
