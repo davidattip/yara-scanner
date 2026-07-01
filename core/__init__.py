@@ -19,6 +19,8 @@ from core.config import (
     SUPPORTED_EXTENSIONS,
 )
 from core.engine import YaraScanner
+from core.entropy import analyze_file as entropy_analyze_file
+from core.entropy import shannon_entropy
 from core.reporting import generate_csv_report, generate_json_report
 from core.scoring import assess_file, compute_score, verdict_from_score
 
@@ -29,6 +31,8 @@ __all__ = [
     "assess_file",
     "compute_score",
     "verdict_from_score",
+    "shannon_entropy",
+    "entropy_analyze_file",
     "RULES_DIR",
     "REPORTS_DIR",
     "SUPPORTED_EXTENSIONS",

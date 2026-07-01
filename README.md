@@ -59,6 +59,14 @@ python scanner.py --scan test_samples/ --report csv
 python scanner.py --list-rules
 ```
 
+### Désactiver la détection par entropie
+En complément des règles YARA, le scanner mesure l'entropie de Shannon des
+longues chaînes : les charges utiles encodées/chiffrées (entropie élevée)
+sont repérées même sans règle dédiée. Pour ne garder que YARA :
+```bash
+python scanner.py --scan test_samples/ --no-entropy
+```
+
 ---
 
 ## Structure du projet

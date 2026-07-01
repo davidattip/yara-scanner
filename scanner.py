@@ -65,6 +65,8 @@ Exemples :
                         help="Afficher toutes les règles YARA chargées")
     parser.add_argument("--no-banner", action="store_true",
                         help="Ne pas afficher la bannière")
+    parser.add_argument("--no-entropy", action="store_true",
+                        help="Désactiver la détection avancée par entropie")
     return parser
 
 
@@ -76,7 +78,7 @@ def main() -> None:
 
     # --- Initialisation du moteur ---
     try:
-        scanner = YaraScanner()
+        scanner = YaraScanner(use_entropy=not args.no_entropy)
     except (FileNotFoundError, ValueError) as exc:
         print(f"\n  [ERREUR] {exc}")
         sys.exit(1)

@@ -12,14 +12,18 @@ import os
 from pathlib import Path
 
 from core.config import RULES_DIR, SEVERITY_ORDER, SUPPORTED_EXTENSIONS
+from core.entropy import analyze_file as entropy_analyze
 from core.rule_loader import LoadedRules, load_rules
 
 
 class YaraScanner:
     """Moteur d'analyse statique basé sur YARA."""
 
-    def __init__(self, rules_dir: str = RULES_DIR) -> None:
+    def __init__(
+        self, rules_dir: str = RULES_DIR, use_entropy: bool = True
+    ) -> None:
         self.rules_dir = rules_dir
+        self.use_entropy = use_entropy
         self._loaded: LoadedRules = load_rules(rules_dir)
 
     # --- Accès aux métadonnées de la base de règles ------------------------
@@ -74,6 +78,10 @@ class YaraScanner:
 
             for match in matches:
                 results.append(self._build_detection(rule_file, match))
+
+        # Détection avancée complémentaire : entropie statistique.
+        if self.use_entropy:
+            results.extend(entropy_analyze(filepath))
 
         results.sort(key=lambda x: SEVERITY_ORDER.get(x["severity"], 99))
         return results
