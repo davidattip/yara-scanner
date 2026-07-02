@@ -1,87 +1,149 @@
 # 🔍 YARA Static Code Analyzer
 ### Projet Annuel — David ATTIPOUPOU — M1 Cybersécurité
 
-Outil d'analyse statique de code utilisant le moteur YARA pour détecter
-des scripts potentiellement malveillants (Python, Bash, PowerShell).
+Outil d'**analyse statique** de code s'appuyant sur le moteur **YARA** pour détecter
+des scripts potentiellement malveillants (Python, Bash, PowerShell, JavaScript…).
+
+> ⚠️ **Analyseur strictement statique.** Le code examiné n'est **jamais exécuté** :
+> toute détection se fait par lecture des fichiers et application de règles YARA,
+> complétées par une analyse statistique d'entropie.
 
 ---
 
-## Installation (Windows / Mac / Linux)
+## ✨ Fonctionnalités
 
-### Étape 1 : Installer Python
-1. Va sur https://www.python.org/downloads/
-2. Télécharge Python 3.10+ et installe-le
-3. **IMPORTANT (Windows)** : Coche la case "Add Python to PATH" pendant l'installation
+- **Moteur YARA** — 25 règles réparties en 8 familles (obfuscation, reverse shells,
+  imports dangereux, encodage, C2 réseau, persistance, ransomware, cryptominage).
+- **Détection avancée par entropie de Shannon** — repère les charges utiles
+  encodées/chiffrées même sans règle dédiée.
+- **Score de risque et verdict par fichier** — score brut cumulé, risque normalisé
+  sur 100, et verdict lisible (PROPRE / À VÉRIFIER / SUSPECT / MALVEILLANT).
+- **Rapports JSON et CSV** — avec empreinte **SHA-256** de chaque fichier analysé
+  (identification d'échantillon, corrélation VirusTotal…).
+- **Interface CLI** colorée + **interface web Flask** optionnelle (upload et scan).
+- **Code de sortie CI/CD** — le scan renvoie `1` si une menace est détectée,
+  `0` sinon : directement intégrable dans un pipeline.
+- **Architecture modulaire** (`core/`) et **suite de tests** pytest (31 tests).
 
-### Étape 2 : Installer les dépendances
-Ouvre un terminal (ou PowerShell sur Windows) et tape :
+---
+
+## 🚀 Installation (Windows / Mac / Linux)
+
+1. Installer **Python 3.10+** (sur Windows, cocher « Add Python to PATH »).
+2. Installer les dépendances :
 
 ```bash
-pip install yara-python colorama
+pip install -r requirements.txt
 ```
 
-Si ça ne marche pas, essaie :
-```bash
-pip3 install yara-python colorama
-```
+> Le chemin CLI de base ne nécessite que `yara-python` (et `colorama` pour les
+> couleurs). `flask` n'est requis que pour l'interface web, `pytest` que pour les tests.
 
-### Étape 3 : Lancer le scanner
+---
+
+## 🖥️ Utilisation (CLI)
+
 ```bash
+# Scanner un dossier
 python scanner.py --scan test_samples/
-```
 
----
+# Scanner un fichier unique
+python scanner.py --scan script_suspect.py
 
-## Utilisation
-
-### Scanner un dossier
-```bash
-python scanner.py --scan <chemin_du_dossier>
-```
-
-### Scanner un fichier unique
-```bash
-python scanner.py --scan <chemin_du_fichier>
-```
-
-### Générer un rapport JSON
-```bash
+# Générer un rapport JSON ou CSV (dans reports/)
 python scanner.py --scan test_samples/ --report json
-```
-
-### Générer un rapport CSV
-```bash
 python scanner.py --scan test_samples/ --report csv
-```
 
-### Afficher les règles chargées
-```bash
+# Lister toutes les règles YARA chargées
 python scanner.py --list-rules
-```
 
-### Désactiver la détection par entropie
-En complément des règles YARA, le scanner mesure l'entropie de Shannon des
-longues chaînes : les charges utiles encodées/chiffrées (entropie élevée)
-sont repérées même sans règle dédiée. Pour ne garder que YARA :
-```bash
+# Désactiver la détection par entropie (YARA seul)
 python scanner.py --scan test_samples/ --no-entropy
 ```
 
+### Détection par entropie
+
+En complément des règles YARA, le scanner mesure l'entropie de Shannon des longues
+chaînes : les charges utiles encodées/chiffrées (entropie élevée, proche de
+l'aléatoire) sont repérées même sans motif connu.
+
+### Code de sortie
+
+Le scanner renvoie `1` dès qu'au moins un fichier est suspect, `0` sinon — pratique
+pour bloquer un job d'intégration continue :
+
+```bash
+python scanner.py --scan ./src && echo "Aucune menace"
+```
+
 ---
 
-## Structure du projet
+## 🌐 Interface web (optionnelle)
+
+```bash
+pip install flask
+python app.py         # → http://localhost:5000
+```
+
+Permet d'uploader un script, de le scanner et de télécharger le rapport JSON/CSV.
+
+| Accueil | Résultats | Règles |
+| --- | --- | --- |
+| ![Accueil](docs/images/web_index.png) | ![Résultats](docs/images/web_results.png) | ![Règles](docs/images/web_rules.png) |
+
+---
+
+## 🧪 Tests
+
+```bash
+pip install pytest
+python -m pytest tests -q
+```
+
+Deux garanties de non-régression :
+- **aucun** fichier de `test_samples/clean/` ne doit être flaggé (zéro faux positif) ;
+- **tous** les fichiers de `test_samples/malicious/` doivent être détectés.
+
+---
+
+## 📁 Structure du projet
 
 ```
 yara_scanner/
-├── scanner.py              # Moteur de scan principal
-├── rules/                  # Règles YARA de détection
-│   ├── obfuscation.yar     # Détection d'obfuscation de code
-│   ├── reverse_shell.yar   # Détection de reverse shells
-│   ├── dangerous_imports.yar # Imports suspects
-│   └── encoding_tricks.yar # Techniques d'encodage malveillant
-├── test_samples/           # Échantillons de test
-│   ├── malicious/          # Scripts suspects (pour tester la détection)
-│   └── clean/              # Scripts légitimes (pour vérifier les faux positifs)
-├── reports/                # Rapports générés
-└── README.md
+├── scanner.py              # Point d'entrée CLI (orchestrateur léger)
+├── app.py                  # Interface web Flask (optionnelle)
+├── core/                   # Logique métier modulaire
+│   ├── config.py           # Constantes (chemins, extensions, sévérités)
+│   ├── rule_loader.py      # Chargement / compilation des règles YARA
+│   ├── engine.py           # Moteur de scan (classe YaraScanner)
+│   ├── entropy.py          # Détection avancée par entropie de Shannon
+│   ├── scoring.py          # Score de risque et verdict par fichier
+│   ├── hashing.py          # Empreintes SHA-256 des fichiers
+│   ├── reporting.py        # Génération des rapports JSON / CSV
+│   └── display.py          # Couche présentation terminal (couleurs)
+├── rules/                  # 8 fichiers de règles YARA (25 règles)
+│   ├── obfuscation.yar         ├── network_c2.yar
+│   ├── reverse_shell.yar       ├── persistence.yar
+│   ├── dangerous_imports.yar   ├── ransomware.yar
+│   └── encoding_tricks.yar     └── cryptomining.yar
+├── templates/              # Vues HTML de l'interface web
+├── test_samples/
+│   ├── clean/              # Scripts légitimes (Python, PowerShell, Bash, JS)
+│   └── malicious/          # Scripts malveillants de test
+├── tests/                  # Suite pytest de non-régression
+├── reports/                # Rapports générés (JSON / CSV)
+└── requirements.txt
 ```
+
+---
+
+## 🧩 Architecture (modules cibles)
+
+| Module | Rôle |
+| --- | --- |
+| `rule_loader` | Recherche, compilation et inventaire des règles YARA. |
+| `engine` | Parcourt fichiers/dossiers et applique les règles. |
+| `entropy` | Détection avancée : obfuscation, contenu encodé/chiffré. |
+| `scoring` | Score de risque normalisé et verdict par fichier. |
+| `reporting` | Rapports JSON/CSV avec SHA-256, sévérité, règle déclenchée. |
+| `display` | Interface CLI colorée ; interface web Flask (`app.py`). |
