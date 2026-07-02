@@ -134,9 +134,18 @@ pip install flask
 python app.py         # → http://localhost:5000
 ```
 
-Permet d'uploader **un ou plusieurs** scripts, de les scanner et de télécharger
-le rapport JSON/CSV. Le dossier `uploads/` est purgé avant chaque scan (pas
-d'accumulation d'échantillons potentiellement malveillants).
+Fonctionnalités de l'interface :
+
+- **Upload multiple, dossier ou archive `.zip`** — scan d'un projet entier en
+  une fois (extraction ZIP strictement statique, jamais d'exécution).
+- **Score ML par fichier** — la probabilité comportementale est affichée dans
+  les résultats quand le modèle est disponible.
+- **Historique persistant (SQLite)** — chaque scan est enregistré ; la page
+  `/history` liste les scans passés, consultables en détail et supprimables.
+- **Tableau de bord** — page `/dashboard` avec graphiques agrégés (détections
+  par sévérité et catégorie, verdicts, top des règles déclenchées).
+- **Rapports** JSON/CSV téléchargeables ; le dossier `uploads/` est purgé avant
+  chaque scan (pas d'accumulation d'échantillons potentiellement malveillants).
 
 | Accueil | Résultats | Règles |
 | --- | --- | --- |
@@ -174,8 +183,10 @@ yara_scanner/
 │   ├── reporting.py        # Génération des rapports JSON / CSV
 │   ├── features.py         # Extraction de features statiques (ML)
 │   ├── ml.py               # Classifieur comportemental (ML, optionnel)
+│   ├── history.py          # Persistance SQLite de l'historique des scans
 │   └── display.py          # Couche présentation terminal (couleurs)
 ├── models/                 # Modèle ML entraîné (behavioral_model.joblib)
+├── data/                   # Base SQLite de l'historique (générée à l'exécution)
 ├── rules/                  # 8 fichiers de règles YARA (25 règles)
 │   ├── obfuscation.yar         ├── network_c2.yar
 │   ├── reverse_shell.yar       ├── persistence.yar

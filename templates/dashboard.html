@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %} — Dashboard{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center mb-4 gap-2">
+  <h4 class="mb-0 fw-bold" style="color:#58a6ff;">
+    <i class="bi bi-bar-chart-line me-1"></i>Tableau de bord
+  </h4>
+  <a href="/history" class="btn btn-sm btn-outline-secondary ms-auto">
+    <i class="bi bi-clock-history me-1"></i>Historique
+  </a>
+</div>
+
+{% if stats.totals.scans == 0 %}
+<div class="card p-5 text-center">
+  <i class="bi bi-graph-up" style="font-size:3rem; color:#30363d;"></i>
+  <p class="text-muted mt-3 mb-2">Aucune donnée pour le moment — lance quelques scans.</p>
+  <a href="/" class="btn btn-outline-secondary mx-auto" style="width:fit-content;">
+    <i class="bi bi-search me-1"></i>Analyser un fichier
+  </a>
+</div>
+{% else %}
+
+<!-- Chiffres clés -->
+<div class="row g-3 mb-4">
+  <div class="col-4">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold" style="color:#58a6ff; font-variant-numeric:tabular-nums;">{{ stats.totals.scans }}</div>
+      <div class="text-muted small">scans réalisés</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-white" style="font-variant-numeric:tabular-nums;">{{ stats.totals.files }}</div>
+      <div class="text-muted small">fichiers analysés</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card text-center p-3">
+      <div class="fs-2 fw-bold text-danger" style="font-variant-numeric:tabular-nums;">{{ stats.totals.detections }}</div>
+      <div class="text-muted small">détections totales</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="small text-muted mb-3">Détections par sévérité</p>
+      <div style="height:260px;"><canvas id="severityChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="small text-muted mb-3">Verdicts des scans</p>
+      <div style="height:260px;"><canvas id="verdictChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="small text-muted mb-3">Détections par catégorie</p>
+      <div style="height:280px;"><canvas id="categoryChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-3 h-100">
+      <p class="small text-muted mb-3">Top 10 des règles déclenchées</p>
+      <div style="height:280px;"><canvas id="rulesChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if stats.totals.scans > 0 %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script id="stats-data" type="application/json">{{ stats | tojson }}</script>
+<script>
+const STATS = JSON.parse(document.getElementById('stats-data').textContent);
+
+// Encre et grille discrètes (mode sombre).
+const INK = '#c3c2b7', GRID = '#2c2c2a';
+Chart.defaults.color = INK;
+Chart.defaults.font.family = "'Consolas', 'Courier New', monospace";
+Chart.defaults.responsive = true;
+Chart.defaults.maintainAspectRatio = false;
+
+// Couleurs de statut réservées (cohérentes avec le reste de l'appli).
+const SEV_COLORS = {
+  CRITICAL: '#da3633', HIGH: '#d29922', MEDIUM: '#1f6feb',
+  LOW: '#238636', INFO: '#6e7681',
+};
+const VERDICT_COLORS = {
+  'MALVEILLANT': '#da3633', 'SUSPECT': '#d29922',
+  'À VÉRIFIER': '#1f6feb', 'PROPRE': '#238636',
+};
+// Palette catégorielle validée (ordre fixe, pas de cycle).
+const CAT_PALETTE = ['#3987e5', '#199e70', '#c98500', '#008300',
+                     '#9085e9', '#e66767', '#d55181', '#d95926'];
+
+const noLegend = { legend: { display: false } };
+const axisNum = {
+  beginAtZero: true, ticks: { precision: 0 },
+  grid: { color: GRID }, border: { color: GRID },
+};
+
+// 1. Sévérité — barres, ordre fixe, couleurs de statut.
+const sevOrder = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO'];
+const sevLabels = sevOrder.filter(s => STATS.by_severity[s]);
+new Chart(document.getElementById('severityChart'), {
+  type: 'bar',
+  data: {
+    labels: sevLabels,
+    datasets: [{
+      data: sevLabels.map(s => STATS.by_severity[s]),
+      backgroundColor: sevLabels.map(s => SEV_COLORS[s]),
+      borderRadius: 4, borderWidth: 0,
+    }],
+  },
+  options: {
+    plugins: noLegend,
+    scales: { x: { grid: { display: false }, border: { color: GRID } }, y: axisNum },
+  },
+});
+
+// 2. Verdicts — anneau, couleurs de statut, légende (>=2 catégories).
+const vLabels = Object.keys(VERDICT_COLORS).filter(v => STATS.by_verdict[v]);
+new Chart(document.getElementById('verdictChart'), {
+  type: 'doughnut',
+  data: {
+    labels: vLabels,
+    datasets: [{
+      data: vLabels.map(v => STATS.by_verdict[v]),
+      backgroundColor: vLabels.map(v => VERDICT_COLORS[v]),
+      borderColor: '#161b22', borderWidth: 2,
+    }],
+  },
+  options: { plugins: { legend: { position: 'right' } } },
+});
+
+// 3. Catégories — barres, palette catégorielle à ordre fixe.
+const catLabels = Object.keys(STATS.by_category);
+new Chart(document.getElementById('categoryChart'), {
+  type: 'bar',
+  data: {
+    labels: catLabels,
+    datasets: [{
+      data: catLabels.map(c => STATS.by_category[c]),
+      backgroundColor: catLabels.map((_, i) => CAT_PALETTE[i % CAT_PALETTE.length]),
+      borderRadius: 4, borderWidth: 0,
+    }],
+  },
+  options: {
+    plugins: noLegend,
+    scales: { x: { grid: { display: false }, border: { color: GRID } }, y: axisNum },
+  },
+});
+
+// 4. Top règles — barres horizontales, série unique = hue unique.
+const rules = STATS.top_rules;
+new Chart(document.getElementById('rulesChart'), {
+  type: 'bar',
+  data: {
+    labels: rules.map(r => r.rule_name),
+    datasets: [{
+      data: rules.map(r => r.n),
+      backgroundColor: '#3987e5', borderRadius: 4, borderWidth: 0,
+    }],
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: noLegend,
+    scales: { x: axisNum, y: { grid: { display: false }, border: { color: GRID } } },
+  },
+});
+</script>
+{% endif %}
+{% endblock %}

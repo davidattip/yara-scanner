@@ -11,6 +11,10 @@ reports/*
 uploads/*
 !uploads/.gitkeep
 
+# Base de données d'historique (générée à l'exécution)
+data/*.db
+data/
+
 # Environnements virtuels
 .venv/
 venv/
