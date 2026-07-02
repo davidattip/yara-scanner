@@ -104,11 +104,12 @@ def download_report(fmt: str):
         flash("Aucun scan récent à exporter.", "warning")
         return redirect(url_for("index"))
 
+    base_dir = str(UPLOAD_FOLDER)
     if fmt == "json":
-        path = generate_json_report(all_results, files_scanned)
+        path = generate_json_report(all_results, files_scanned, base_dir=base_dir)
         return send_file(path, as_attachment=True)
     if fmt == "csv":
-        path = generate_csv_report(all_results, files_scanned)
+        path = generate_csv_report(all_results, files_scanned, base_dir=base_dir)
         return send_file(path, as_attachment=True)
 
     flash("Format inconnu.", "danger")

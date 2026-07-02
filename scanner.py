@@ -110,8 +110,12 @@ def main() -> None:
         matches = scanner.scan_file(target)
         all_results = {target: matches} if matches else {}
         files_scanned, files_skipped = 1, 0
+        # La clé du résultat est déjà le chemin réel : pas de base à préfixer.
+        base_dir = ""
     else:
         all_results, files_scanned, files_skipped = scanner.scan_directory(target)
+        # Les clés sont relatives au dossier scanné : on le garde pour le hash.
+        base_dir = target
 
     scan_time = time.time() - start_time
 
@@ -120,9 +124,19 @@ def main() -> None:
     # --- Rapport optionnel ---
     if args.report and all_results:
         if args.report == "json":
-            print_report_saved(generate_json_report(all_results, files_scanned))
+            print_report_saved(
+                generate_json_report(all_results, files_scanned, base_dir=base_dir)
+            )
         elif args.report == "csv":
-            print_report_saved(generate_csv_report(all_results, files_scanned))
+            print_report_saved(
+                generate_csv_report(all_results, files_scanned, base_dir=base_dir)
+            )
+
+    # --- Code de sortie ---
+    # Sortie 1 si au moins une menace est détectée : permet d'utiliser le
+    # scanner dans un pipeline CI/CD (le job échoue si un fichier est suspect).
+    if all_results:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
