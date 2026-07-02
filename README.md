@@ -98,6 +98,35 @@ python scanner.py --scan ./src && echo "Aucune menace"
 
 ---
 
+## 🤖 Module ML comportemental (bonus, optionnel)
+
+En complément de YARA et de l'entropie, un classifieur **scikit-learn**
+(RandomForest) apprend à distinguer scripts bénins et malveillants à partir
+de caractéristiques **statiques** globales (entropie, densité de mots-clés
+suspects, longueur des lignes, imports dangereux…). Il peut lever un doute
+sur un script qu'aucune règle ne matche.
+
+```bash
+# 1. Installer les dépendances ML (isolées : la CLI de base n'en a pas besoin)
+pip install scikit-learn joblib
+
+# 2. Entraîner le modèle sur le dataset (test_samples/) — évaluation par
+#    validation croisée puis sauvegarde dans models/
+python train_ml.py
+
+# 3. Ajouter l'analyse ML à un scan
+python scanner.py --scan test_samples/ --ml
+```
+
+Le module est **totalement optionnel** : sans scikit-learn, la CLI YARA
+fonctionne normalement et `--ml` affiche un message d'indisponibilité clair.
+
+> ⚠️ Dataset volontairement réduit (usage pédagogique) : les probabilités
+> affichées sur les fichiers d'entraînement sont optimistes. La validation
+> croisée donne une estimation plus honnête de la généralisation.
+
+---
+
 ## 🌐 Interface web (optionnelle)
 
 ```bash
@@ -134,6 +163,7 @@ Deux garanties de non-régression :
 yara_scanner/
 ├── scanner.py              # Point d'entrée CLI (orchestrateur léger)
 ├── app.py                  # Interface web Flask (optionnelle)
+├── train_ml.py             # Entraînement du modèle ML (bonus)
 ├── core/                   # Logique métier modulaire
 │   ├── config.py           # Constantes (chemins, extensions, sévérités)
 │   ├── rule_loader.py      # Chargement / compilation des règles YARA
@@ -142,7 +172,10 @@ yara_scanner/
 │   ├── scoring.py          # Score de risque et verdict par fichier
 │   ├── hashing.py          # Empreintes SHA-256 des fichiers
 │   ├── reporting.py        # Génération des rapports JSON / CSV
+│   ├── features.py         # Extraction de features statiques (ML)
+│   ├── ml.py               # Classifieur comportemental (ML, optionnel)
 │   └── display.py          # Couche présentation terminal (couleurs)
+├── models/                 # Modèle ML entraîné (behavioral_model.joblib)
 ├── rules/                  # 8 fichiers de règles YARA (25 règles)
 │   ├── obfuscation.yar         ├── network_c2.yar
 │   ├── reverse_shell.yar       ├── persistence.yar
@@ -168,4 +201,5 @@ yara_scanner/
 | `entropy` | Détection avancée : obfuscation, contenu encodé/chiffré. |
 | `scoring` | Score de risque normalisé et verdict par fichier. |
 | `reporting` | Rapports JSON/CSV avec SHA-256, sévérité, règle déclenchée. |
+| `features` + `ml` | Détection comportementale ML complémentaire (bonus). |
 | `display` | Interface CLI colorée ; interface web Flask (`app.py`). |

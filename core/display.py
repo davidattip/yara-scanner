@@ -183,3 +183,32 @@ def print_rules(rules_by_file: dict[str, list[str]], total_rules: int) -> None:
 def print_report_saved(path: str) -> None:
     """Confirme l'écriture d'un rapport."""
     print(f"  {Fore.GREEN}📊 Rapport généré : {path}{Style.RESET_ALL}")
+
+
+# --- Analyse ML comportementale --------------------------------------------
+
+def print_ml_results(predictions: list[dict]) -> None:
+    """Affiche les scores du modèle ML comportemental, triés par probabilité."""
+    print(f"\n{Fore.MAGENTA}{'═' * 60}")
+    print("  ANALYSE ML COMPORTEMENTALE (bonus)")
+    print(f"{'═' * 60}{Style.RESET_ALL}\n")
+
+    if not predictions:
+        print("  Aucun fichier analysable.\n")
+        return
+
+    for pred in predictions:
+        proba = pred["proba"]
+        # Rouge si suspect, vert sinon — seuil géré côté module ml.
+        color = Fore.RED if proba >= 0.5 else Fore.GREEN
+        bar_len = round(proba * 20)
+        bar = "█" * bar_len + "░" * (20 - bar_len)
+        print(
+            f"  {color}{bar}{Style.RESET_ALL} "
+            f"{proba:5.1%}  {pred['verdict']:12s}  {pred['file']}"
+        )
+
+    print(
+        f"\n  {Style.DIM}Probabilité que le script soit malveillant, "
+        f"estimée par le modèle entraîné sur le dataset.{Style.RESET_ALL}\n"
+    )

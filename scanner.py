@@ -25,6 +25,7 @@ from core.config import REPORTS_DIR, RULES_DIR, SEVERITY_ORDER, SUPPORTED_EXTENS
 from core.display import (
     print_banner,
     print_load_warnings,
+    print_ml_results,
     print_report_saved,
     print_results,
     print_rules,
@@ -98,9 +99,24 @@ Exemples :
                         help="Ne pas afficher la bannière")
     parser.add_argument("--no-entropy", action="store_true",
                         help="Désactiver la détection avancée par entropie")
+    parser.add_argument("--ml", action="store_true",
+                        help="Activer l'analyse ML comportementale "
+                             "(bonus, nécessite scikit-learn + modèle entraîné)")
     parser.add_argument("--version", action="version",
                         version=f"YARA Static Code Analyzer {__version__}")
     return parser
+
+
+def _collect_supported_files(target: str) -> list[str]:
+    """Liste les fichiers d'extension supportée sous une cible (fichier ou dossier)."""
+    if os.path.isfile(target):
+        return [target]
+    collected = []
+    for root, _dirs, files in os.walk(target):
+        for filename in files:
+            if os.path.splitext(filename)[1].lower() in SUPPORTED_EXTENSIONS:
+                collected.append(os.path.join(root, filename))
+    return collected
 
 
 def main() -> None:
@@ -157,6 +173,15 @@ def main() -> None:
         all_results = filter_by_severity(all_results, args.min_severity)
 
     print_results(all_results, files_scanned, files_skipped, scan_time)
+
+    # --- Analyse ML comportementale optionnelle (bonus) ---
+    if args.ml:
+        from core.ml import MLUnavailableError, analyze_files
+        try:
+            predictions = analyze_files(_collect_supported_files(target))
+            print_ml_results(predictions)
+        except MLUnavailableError as exc:
+            print(f"\n  [ML indisponible] {exc}")
 
     # --- Rapport optionnel ---
     if args.report and all_results:
