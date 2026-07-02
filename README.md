@@ -203,3 +203,10 @@ yara_scanner/
 | `reporting` | Rapports JSON/CSV avec SHA-256, sévérité, règle déclenchée. |
 | `features` + `ml` | Détection comportementale ML complémentaire (bonus). |
 | `display` | Interface CLI colorée ; interface web Flask (`app.py`). |
+
+---
+
+## 📄 Documentation
+
+Le **rapport technique** détaillé (architecture, calibrage des seuils,
+méthodologie ML, tests) est disponible dans [`docs/rapport.md`](docs/rapport.md).
