@@ -153,6 +153,45 @@ Fonctionnalités de l'interface :
 
 ---
 
+## 🚢 Déploiement
+
+Le serveur intégré de Flask (`python app.py`) est réservé au **développement**.
+Pour un déploiement en production, deux options.
+
+### Option A — Docker (recommandé, identique sur Windows / Linux / Mac)
+
+```bash
+docker compose up -d       # construit et lance → http://localhost:5000
+docker compose down        # arrêt
+```
+
+Le conteneur tourne sous Linux quel que soit l'hôte : **une seule configuration
+de déploiement**, et l'historique SQLite est persisté via un volume (`./data`).
+
+### Option B — Serveur WSGI direct (waitress, multi-plateforme)
+
+```bash
+pip install waitress
+python wsgi.py             # → http://localhost:5000
+```
+
+`waitress` fonctionne sous Windows comme sous Linux. Sous Linux, `gunicorn`
+(utilisé dans l'image Docker) est l'alternative standard :
+`gunicorn --bind 0.0.0.0:5000 wsgi:app`.
+
+### Différences Windows / Linux
+
+| Sujet | Linux | Windows |
+| --- | --- | --- |
+| Serveur WSGI | `gunicorn` ou `waitress` | `waitress` (gunicorn indisponible) |
+| Service / démarrage | `systemd` | Service via NSSM ou tâche planifiée |
+| Encodage console | UTF-8 | cp1252 (géré automatiquement par le code) |
+
+> La conteneurisation Docker **supprime** ces différences : c'est l'approche
+> conseillée pour un déploiement reproductible.
+
+---
+
 ## 🧪 Tests
 
 ```bash
@@ -171,8 +210,11 @@ Deux garanties de non-régression :
 ```
 yara_scanner/
 ├── scanner.py              # Point d'entrée CLI (orchestrateur léger)
-├── app.py                  # Interface web Flask (optionnelle)
+├── app.py                  # Interface web Flask (dev)
+├── wsgi.py                 # Point d'entrée WSGI de production (waitress)
 ├── train_ml.py             # Entraînement du modèle ML (bonus)
+├── Dockerfile              # Image de production
+├── docker-compose.yml      # Déploiement en une commande
 ├── core/                   # Logique métier modulaire
 │   ├── config.py           # Constantes (chemins, extensions, sévérités)
 │   ├── rule_loader.py      # Chargement / compilation des règles YARA

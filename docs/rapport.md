@@ -68,6 +68,7 @@ des structures de données que les couches supérieures exploitent.
 | `reporting.py` | Génération des rapports JSON et CSV. |
 | `features.py` | Extraction des caractéristiques statiques pour le ML (pur Python). |
 | `ml.py` | Classifieur comportemental scikit-learn (dépendance isolée). |
+| `history.py` | Persistance SQLite de l'historique des scans (interface web). |
 | `display.py` | Couche présentation terminal (couleurs, bannière, résultats). |
 
 ### 2.3 Isolation des dépendances optionnelles
@@ -258,35 +259,76 @@ sinon : il est directement intégrable dans un pipeline d'intégration continue.
 
 ### 8.2 Interface web (Flask, optionnelle)
 
-Permet d'uploader **un ou plusieurs** scripts, de les scanner et de télécharger
-le rapport. Le dossier d'upload est purgé avant chaque scan, pour ne pas
-accumuler d'échantillons potentiellement malveillants sur le disque.
+L'interface web va au-delà d'un simple scan one-shot :
+
+- **Upload multiple, dossier ou archive `.zip`** : scan d'un projet entier en
+  une fois. L'extraction ZIP est **strictement statique et sécurisée**
+  (protection anti path-traversal, plafonds de taille décompressée et de
+  nombre de membres) — les fichiers sont lus, jamais exécutés.
+- **Score ML par fichier** affiché dans les résultats (cohérent avec `--ml`).
+- **Historique persistant (SQLite)** : chaque scan est enregistré (module
+  `core/history.py`) et consultable via la page `/history` (vue détail
+  rejouable, suppression). Le dossier d'upload est purgé avant chaque scan.
+- **Tableau de bord** (`/dashboard`) : graphiques agrégés (détections par
+  sévérité et catégorie, verdicts, top des règles déclenchées).
+
+La couche de données comporte deux tables : `scans` (synthèse + détail
+sérialisé pour rejouer l'affichage) et `detections` (une ligne par détection,
+pour les agrégations rapides du tableau de bord).
 
 ---
 
-## 9. Qualité, tests et intégration continue
+## 9. Déploiement
 
-### 9.1 Suite de tests
+L'application est packagée pour un déploiement automatisé et reproductible.
 
-**49 tests** pytest couvrent :
+- **Serveur WSGI de production** : le serveur intégré de Flask
+  (`app.run(debug=True)`) est réservé au développement. En production,
+  l'application est servie par **waitress** (`wsgi.py`), serveur WSGI pur
+  Python **multi-plateforme**.
+- **Conteneurisation Docker** : `Dockerfile` + `docker-compose.yml` permettent
+  un déploiement en une commande (`docker compose up -d`). L'historique SQLite
+  est persisté via un volume.
+- **Publication automatique** : un workflow GitHub Actions construit l'image et
+  la publie sur GitHub Container Registry (GHCR) à chaque push et tag de version.
+
+### Différences Windows / Linux
+
+Le déploiement natif diffère selon le système : sous Linux on utilise
+`gunicorn` + `systemd`, sous Windows `waitress` + un service (NSSM ou tâche
+planifiée) ; l'encodage console (UTF-8 vs cp1252) et les fins de ligne
+(LF vs CRLF) divergent aussi. **La conteneurisation neutralise ces
+différences** : le conteneur s'exécute sous Linux quelle que soit la machine
+hôte, donc une seule configuration de déploiement suffit.
+
+---
+
+## 10. Qualité, tests et intégration continue
+
+### 10.1 Suite de tests
+
+**54 tests** pytest couvrent :
 
 - **non-régression détection** : zéro faux positif sur `clean/`, 100 % de
   détection sur `malicious/` ;
 - **chargement des règles** : dossier absent/vide, règle YARA invalide ;
 - **rapports et hachage** : SHA-256, verdict de bout en bout, colonnes CSV ;
 - **filtrage CLI** par sévérité ;
+- **persistance** : enregistrement, relecture, agrégations et suppression de
+  l'historique (base SQLite temporaire isolée) ;
 - **features et ML** (ces derniers ignorés si scikit-learn est absent).
 
-### 9.2 Intégration continue
+### 10.2 Intégration continue
 
 Un workflow **GitHub Actions** exécute la suite de tests sur Python 3.10, 3.11
 et 3.12 à chaque push, et vérifie les codes de sortie (clean = 0, malicious
 ≠ 0). Comme la CI n'installe pas les dépendances optionnelles, elle valide
-aussi que l'outil fonctionne **sans** scikit-learn.
+aussi que l'outil fonctionne **sans** scikit-learn. Un second workflow
+construit et publie l'image Docker.
 
 ---
 
-## 10. Limites et perspectives
+## 11. Limites et perspectives
 
 - **Dataset réduit** : les performances ML sont démonstratives ; un dataset
   plus large et diversifié améliorerait la généralisation.
@@ -294,12 +336,12 @@ aussi que l'outil fonctionne **sans** scikit-learn.
   contourné par de l'obfuscation avancée ou du polymorphisme — d'où l'intérêt
   des couches entropie et ML en complément.
 - **Pistes d'évolution** : extraction de features syntaxiques (AST) sans
-  exécution, extension du jeu de règles, historique des scans côté web,
-  export d'un rapport HTML autonome.
+  exécution, extension du jeu de règles, export d'un rapport HTML autonome,
+  authentification pour un usage multi-utilisateurs.
 
 ---
 
-## 11. Conclusion
+## 12. Conclusion
 
 L'outil répond à l'objectif : un analyseur statique modulaire, testé et
 documenté, combinant **trois approches complémentaires** de détection (règles
