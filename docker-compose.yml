@@ -1,0 +1,16 @@
+# Déploiement en une commande :  docker compose up -d
+# Puis ouvrir  http://localhost:5000
+#
+# Arrêt :       docker compose down
+
+services:
+  yara-scanner:
+    build: .
+    image: yara-scanner:latest
+    container_name: yara-scanner
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persiste l'historique des scans (SQLite) entre les redémarrages.
+      - ./data:/app/data
+    restart: unless-stopped

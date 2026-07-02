@@ -1,0 +1,29 @@
+# Fichiers inutiles à l'image (réduit le contexte de build).
+.git
+.github
+.gitignore
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+tests/
+.venv/
+venv/
+env/
+
+# Données générées à l'exécution (montées en volume, pas dans l'image).
+data/
+uploads/*
+!uploads/.gitkeep
+reports/*
+!reports/.gitkeep
+
+# Documentation lourde
+docs/images/
+screenshot_*.png
+
+# Environnements IDE
+.vscode/
+.idea/
+.claude/

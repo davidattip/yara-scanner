@@ -3,6 +3,10 @@ colorama>=0.4.6
 pytest>=7.4.0
 flask>=3.0.0
 
+# Serveur WSGI de production (multi-plateforme). Utilisé par wsgi.py et
+# dans l'image Docker. Non requis pour la CLI ni le serveur de dev.
+waitress>=3.0.0
+
 # Optionnel — module ML comportemental (bonus).
 # Non requis pour la CLI de base (YARA + entropie). Installer pour
 # entraîner le modèle (train_ml.py) et utiliser scanner.py --ml.
