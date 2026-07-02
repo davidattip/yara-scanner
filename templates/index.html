@@ -38,19 +38,19 @@
     <!-- Formulaire d'upload -->
     <div class="card p-4 mb-3">
       <h5 class="mb-3" style="color:#e6edf3;">
-        <i class="bi bi-shield-check me-2" style="color:#58a6ff;"></i>Scanner un fichier
+        <i class="bi bi-shield-check me-2" style="color:#58a6ff;"></i>Scanner un ou plusieurs fichiers
       </h5>
       <form action="/scan" method="post" enctype="multipart/form-data">
         <div class="drop-zone mb-3" id="dropZone"
              onclick="document.getElementById('fileInput').click()">
           <i class="bi bi-file-earmark-code fs-1" style="color:#30363d;"></i>
           <p class="mt-2 mb-1" style="color:#8b949e;">
-            Cliquez ou déposez un fichier ici
+            Cliquez ou déposez un ou plusieurs fichiers ici
           </p>
           <p class="small text-muted mb-0" id="fileLabel">
             {{ supported_ext | join('  ') }}
           </p>
-          <input type="file" id="fileInput" name="file" class="d-none"
+          <input type="file" id="fileInput" name="files" class="d-none" multiple
                  onchange="handleFile(this)" />
         </div>
         <div class="d-grid">
@@ -75,9 +75,12 @@
 <script>
 function handleFile(input) {
   if (input.files.length) {
-    const name = input.files[0].name;
+    const count = input.files.length;
+    const label = count === 1
+      ? input.files[0].name
+      : count + ' fichiers sélectionnés';
     document.getElementById('fileLabel').innerHTML =
-      '<i class="bi bi-file-earmark-check"></i> ' + name;
+      '<i class="bi bi-file-earmark-check"></i> ' + label;
     document.getElementById('dropZone').style.borderColor = '#58a6ff';
   }
 }

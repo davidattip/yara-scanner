@@ -57,9 +57,29 @@ python scanner.py --scan test_samples/ --report csv
 # Lister toutes les règles YARA chargées
 python scanner.py --list-rules
 
+# Utiliser une base de règles personnalisée
+python scanner.py --scan test_samples/ --rules /chemin/vers/mes_regles
+
+# Ne garder que les détections graves (réduit le bruit)
+python scanner.py --scan test_samples/ --min-severity HIGH
+
 # Désactiver la détection par entropie (YARA seul)
 python scanner.py --scan test_samples/ --no-entropy
+
+# Afficher la version
+python scanner.py --version
 ```
+
+| Option | Effet |
+| --- | --- |
+| `--scan CIBLE` | Fichier ou dossier à analyser. |
+| `--rules DOSSIER` | Base de règles YARA à utiliser (défaut : `rules/`). |
+| `--min-severity NIVEAU` | Filtre : n'affiche que `≥ CRITICAL/HIGH/MEDIUM/LOW/INFO`. |
+| `--report {json,csv}` | Génère un rapport dans `reports/`. |
+| `--list-rules` | Liste les règles chargées. |
+| `--no-entropy` | Désactive l'analyse par entropie. |
+| `--no-banner` | Masque la bannière ASCII. |
+| `--version` | Affiche la version. |
 
 ### Détection par entropie
 
@@ -85,7 +105,9 @@ pip install flask
 python app.py         # → http://localhost:5000
 ```
 
-Permet d'uploader un script, de le scanner et de télécharger le rapport JSON/CSV.
+Permet d'uploader **un ou plusieurs** scripts, de les scanner et de télécharger
+le rapport JSON/CSV. Le dossier `uploads/` est purgé avant chaque scan (pas
+d'accumulation d'échantillons potentiellement malveillants).
 
 | Accueil | Résultats | Règles |
 | --- | --- | --- |

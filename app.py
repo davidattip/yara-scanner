@@ -33,6 +33,22 @@ scanner = YaraScanner()
 _last_scan: dict = {"results": {}, "files_scanned": 0}
 
 
+def _purge_uploads() -> None:
+    """Vide le dossier uploads/ (sauf .gitkeep) avant un nouveau scan.
+
+    Évite d'accumuler indéfiniment les fichiers uploadés — dont des
+    échantillons potentiellement malveillants. On ne garde sur le disque
+    que le lot en cours d'analyse (nécessaire au calcul du SHA-256 du
+    rapport téléchargeable ensuite).
+    """
+    for item in UPLOAD_FOLDER.iterdir():
+        if item.is_file() and item.name != ".gitkeep":
+            try:
+                item.unlink()
+            except OSError:
+                pass
+
+
 @app.route("/")
 def index() -> str:
     return render_template(
@@ -45,31 +61,52 @@ def index() -> str:
 
 @app.route("/scan", methods=["POST"])
 def scan():
-    uploaded = request.files.get("file")
-    if not uploaded or not uploaded.filename:
+    # Accepte le champ "files" (upload multiple) et retombe sur "file"
+    # pour compatibilité avec un formulaire mono-fichier.
+    uploaded_files = request.files.getlist("files") or request.files.getlist("file")
+    uploaded_files = [f for f in uploaded_files if f and f.filename]
+    if not uploaded_files:
         flash("Aucun fichier sélectionné.", "danger")
         return redirect(url_for("index"))
 
-    filename = secure_filename(uploaded.filename)
-    ext = Path(filename).suffix.lower()
-    if ext not in SUPPORTED_EXTENSIONS:
+    # On repart d'un dossier propre : pas d'accumulation d'échantillons.
+    _purge_uploads()
+
+    all_results: dict[str, list[dict]] = {}
+    files_scanned = 0
+    rejected: list[str] = []
+
+    start = time.time()
+    for uploaded in uploaded_files:
+        filename = secure_filename(uploaded.filename)
+        ext = Path(filename).suffix.lower()
+        if ext not in SUPPORTED_EXTENSIONS:
+            rejected.append(f"{filename} ({ext or 'sans extension'})")
+            continue
+
+        filepath = UPLOAD_FOLDER / filename
+        uploaded.save(str(filepath))
+        files_scanned += 1
+
+        matches = scanner.scan_file(filepath)
+        if matches:
+            all_results[filename] = matches
+    scan_time = time.time() - start
+
+    if files_scanned == 0:
         flash(
-            f"Extension non supportée : {ext}. "
+            "Aucun fichier au format supporté. "
             f"Acceptés : {', '.join(sorted(SUPPORTED_EXTENSIONS))}",
             "danger",
         )
         return redirect(url_for("index"))
 
-    filepath = UPLOAD_FOLDER / filename
-    uploaded.save(str(filepath))
+    if rejected:
+        flash("Fichiers ignorés (extension non supportée) : "
+              + ", ".join(rejected), "warning")
 
-    start = time.time()
-    matches = scanner.scan_file(filepath)
-    scan_time = time.time() - start
-
-    all_results = {filename: matches} if matches else {}
     _last_scan["results"] = all_results
-    _last_scan["files_scanned"] = 1
+    _last_scan["files_scanned"] = files_scanned
 
     total_detections = sum(len(m) for m in all_results.values())
     severity_counts: dict[str, int] = Counter()
@@ -83,13 +120,19 @@ def scan():
         for filepath, matches in all_results.items()
     }
 
+    # Cible affichée : le fichier unique, ou un résumé du lot.
+    if files_scanned == 1 and not rejected:
+        target = next(iter(all_results), uploaded_files[0].filename)
+    else:
+        target = f"{files_scanned} fichiers"
+
     return render_template(
         "results.html",
         all_results=all_results,
         assessments=assessments,
-        files_scanned=1,
+        files_scanned=files_scanned,
         scan_time=scan_time,
-        target=filename,
+        target=target,
         total_detections=total_detections,
         severity_counts=severity_counts,
     )
