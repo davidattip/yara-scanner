@@ -32,16 +32,40 @@ from core.display import (
 from core.engine import YaraScanner
 from core.reporting import generate_csv_report, generate_json_report
 
+__version__ = "1.0.0"
+
 # Ré-exports pour compatibilité (app.py et tests importent depuis `scanner`).
 __all__ = [
     "YaraScanner",
     "generate_json_report",
     "generate_csv_report",
+    "filter_by_severity",
     "RULES_DIR",
     "REPORTS_DIR",
     "SUPPORTED_EXTENSIONS",
     "SEVERITY_ORDER",
 ]
+
+
+def filter_by_severity(
+    all_results: dict[str, list[dict]], min_severity: str
+) -> dict[str, list[dict]]:
+    """Ne conserve que les détections d'une sévérité >= au seuil demandé.
+
+    L'ordre de gravité est donné par SEVERITY_ORDER (0 = CRITICAL, le plus
+    grave). Un fichier qui n'a plus aucune détection après filtrage est retiré
+    du résultat.
+    """
+    threshold = SEVERITY_ORDER.get(min_severity, len(SEVERITY_ORDER))
+    filtered: dict[str, list[dict]] = {}
+    for filepath, matches in all_results.items():
+        kept = [
+            m for m in matches
+            if SEVERITY_ORDER.get(m["severity"], 99) <= threshold
+        ]
+        if kept:
+            filtered[filepath] = kept
+    return filtered
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -59,6 +83,13 @@ Exemples :
     )
     parser.add_argument("--scan", metavar="CIBLE",
                         help="Fichier ou dossier à scanner")
+    parser.add_argument("--rules", metavar="DOSSIER", default=RULES_DIR,
+                        help="Dossier de règles YARA à utiliser "
+                             "(défaut : rules/)")
+    parser.add_argument("--min-severity",
+                        choices=["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+                        help="N'afficher que les détections d'au moins ce "
+                             "niveau de sévérité")
     parser.add_argument("--report", choices=["json", "csv"],
                         help="Générer un rapport (json ou csv)")
     parser.add_argument("--list-rules", action="store_true",
@@ -67,6 +98,8 @@ Exemples :
                         help="Ne pas afficher la bannière")
     parser.add_argument("--no-entropy", action="store_true",
                         help="Désactiver la détection avancée par entropie")
+    parser.add_argument("--version", action="version",
+                        version=f"YARA Static Code Analyzer {__version__}")
     return parser
 
 
@@ -78,7 +111,7 @@ def main() -> None:
 
     # --- Initialisation du moteur ---
     try:
-        scanner = YaraScanner(use_entropy=not args.no_entropy)
+        scanner = YaraScanner(rules_dir=args.rules, use_entropy=not args.no_entropy)
     except (FileNotFoundError, ValueError) as exc:
         print(f"\n  [ERREUR] {exc}")
         sys.exit(1)
@@ -118,6 +151,10 @@ def main() -> None:
         base_dir = target
 
     scan_time = time.time() - start_time
+
+    # Filtrage optionnel par sévérité minimale (réduit le bruit).
+    if args.min_severity:
+        all_results = filter_by_severity(all_results, args.min_severity)
 
     print_results(all_results, files_scanned, files_skipped, scan_time)
 
