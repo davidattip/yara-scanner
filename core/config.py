@@ -7,12 +7,22 @@ ce qui évite les imports circulaires.
 """
 
 import os
+import sys
 
 # --- Chemins ---------------------------------------------------------------
-# Racine du projet = dossier parent de `core/`.
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RULES_DIR = os.path.join(PROJECT_ROOT, "rules")
-REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
+if getattr(sys, "frozen", False):
+    # Exécutable PyInstaller : les ressources en lecture seule (les règles)
+    # sont extraites dans un dossier temporaire (sys._MEIPASS), tandis que les
+    # sorties (rapports) doivent être écrites à côté de l'exécutable.
+    _BUNDLE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(sys.executable))
+    PROJECT_ROOT = os.path.dirname(sys.executable)
+    RULES_DIR = os.path.join(_BUNDLE_DIR, "rules")
+    REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
+else:
+    # Exécution normale : racine du projet = dossier parent de `core/`.
+    PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    RULES_DIR = os.path.join(PROJECT_ROOT, "rules")
+    REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
 
 # --- Extensions de fichiers analysés ---------------------------------------
 SUPPORTED_EXTENSIONS = {

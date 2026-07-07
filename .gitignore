@@ -35,5 +35,9 @@ Thumbs.db
 # Règles YARA compilées
 *.compiled.yar
 
+# Artefacts de build PyInstaller (l'exe se reconstruit via yara_scanner.spec)
+build/
+dist/
+
 # Variables d'environnement
 .env

@@ -153,6 +153,29 @@ Fonctionnalités de l'interface :
 
 ---
 
+## 📦 Distribuer l'outil à quelqu'un
+
+Pour qu'une autre personne analyse ses propres fichiers sur son PC — voir le
+[guide d'utilisation](docs/GUIDE_UTILISATION.md) destiné à l'utilisateur final.
+
+**Avec Python** — la personne récupère le projet et double-clique sur un des
+lanceurs fournis : `Analyser_un_dossier.bat` (glisser-déposer un dossier) ou
+`Interface_web.bat` (interface graphique). L'installation se fait toute seule
+au premier lancement.
+
+**Sans Python (exécutable autonome)** — on produit un `.exe` Windows unique :
+
+```bash
+pip install pyinstaller
+pyinstaller yara_scanner.spec      # → dist/yara-scanner.exe
+```
+
+L'exe embarque le moteur YARA et les règles ; il s'utilise sans rien installer :
+`yara-scanner.exe --scan "C:\dossier"`. (Le module ML est exclu de l'exe pour
+rester léger ; il reste disponible via l'installation Python.)
+
+---
+
 ## 🚢 Déploiement
 
 Le serveur intégré de Flask (`python app.py`) est réservé au **développement**.
