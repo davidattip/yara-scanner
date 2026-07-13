@@ -20,7 +20,11 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "data" / "history.db"
+from core.config import DATA_DIR
+
+# Chemin issu de la config centrale : en exécutable PyInstaller, la base vit
+# à côté de l'exe (et non dans le dossier temporaire, effacé à la fermeture).
+DB_PATH = Path(DATA_DIR) / "history.db"
 
 # Rang des verdicts pour déterminer le pire d'un lot (0 = plus grave).
 _VERDICT_RANK = {

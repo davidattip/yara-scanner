@@ -24,6 +24,12 @@ else:
     RULES_DIR = os.path.join(PROJECT_ROOT, "rules")
     REPORTS_DIR = os.path.join(PROJECT_ROOT, "reports")
 
+# Données persistantes (base d'historique) et uploads de l'interface web.
+# Toujours à côté du projet/exécutable — jamais dans le dossier temporaire
+# PyInstaller, qui est effacé à la fermeture.
+DATA_DIR = os.path.join(PROJECT_ROOT, "data")
+UPLOADS_DIR = os.path.join(PROJECT_ROOT, "uploads")
+
 # --- Extensions de fichiers analysés ---------------------------------------
 SUPPORTED_EXTENSIONS = {
     ".py", ".sh", ".bash", ".ps1", ".bat", ".cmd",

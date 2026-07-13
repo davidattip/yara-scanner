@@ -5,6 +5,7 @@ Lancer avec : python app.py  →  http://localhost:5000
 """
 
 import shutil
+import sys
 import time
 import zipfile
 from collections import Counter
@@ -16,6 +17,7 @@ from flask import (
 from werkzeug.utils import secure_filename
 
 from core import history
+from core.config import UPLOADS_DIR
 from core.scoring import assess_file
 from scanner import (
     SUPPORTED_EXTENSIONS,
@@ -24,10 +26,16 @@ from scanner import (
     generate_json_report,
 )
 
-app = Flask(__name__)
+# En exécutable PyInstaller, les templates sont extraits dans le dossier
+# temporaire du bundle (sys._MEIPASS) : on indique ce chemin à Flask.
+if getattr(sys, "frozen", False):
+    _bundle_dir = getattr(sys, "_MEIPASS", str(Path(sys.executable).parent))
+    app = Flask(__name__, template_folder=str(Path(_bundle_dir) / "templates"))
+else:
+    app = Flask(__name__)
 app.secret_key = "yara-scanner-dev-key"  # usage scolaire, mono-utilisateur
 
-UPLOAD_FOLDER = Path(__file__).parent / "uploads"
+UPLOAD_FOLDER = Path(UPLOADS_DIR)
 UPLOAD_FOLDER.mkdir(exist_ok=True)
 
 # Garde-fous pour l'extraction d'archives ZIP (jamais d'exécution, lecture seule).
